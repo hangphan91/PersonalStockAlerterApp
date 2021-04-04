@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>HP.PersonalStocks.Mgr</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="YahooFinanceApi" Version="2.1.2" />
+    <PackageReference Include="Trady.Core" Version="3.2.9" />
+    <PackageReference Include="Trady.Analysis" Version="3.2.8" />
+    <PackageReference Include="Skender.Stock.Indicators" Version="1.10.6" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PersonalStocksAlerter.Models\PersonalStocksAlerter.Models.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Helpers\" />
+    <Folder Include="Factories\" />
+  </ItemGroup>
+</Project>
