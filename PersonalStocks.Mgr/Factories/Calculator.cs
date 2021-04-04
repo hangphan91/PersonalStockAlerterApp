@@ -124,21 +124,41 @@ namespace HP.PersonalStocks.Mgr.Factories
             return suggestion;
         }
 
-        private static string SuggestionString(decimal buyLowLimitPrice,
-            decimal buyHighLimitPrice, string action)
+        private string SuggestionString(decimal lowLimitPrice,
+            decimal highLimitPrice, string action)
         {
-            var correctOrder = buyHighLimitPrice > buyLowLimitPrice;
+            var correctOrder = highLimitPrice > lowLimitPrice;
+           
             if (correctOrder)
             {
+                ConsilidateSuggestions(lowLimitPrice, highLimitPrice, action);
                 return $"Our Suggested Target Range To {action}: " +
-                            $"Between {buyLowLimitPrice} And {buyHighLimitPrice}.";
+                            $"Between {lowLimitPrice} And {highLimitPrice}. ";
             }
             else
             {
-                return $" Our Suggested Target Range To {action}: " +
-                             $"Between {buyHighLimitPrice} And {buyLowLimitPrice}.";
+                ConsilidateSuggestions(highLimitPrice, lowLimitPrice, action);
+                return $"Our Suggested Target Range To {action}: " +
+                             $"Between {highLimitPrice} And {lowLimitPrice}. ";
             }
-            
+
+        }
+
+        private void ConsilidateSuggestions(decimal lowLimitPrice, decimal highLimitPrice, string action)
+        {
+            switch (action)
+            {
+                case "Buy":
+                    BuyingSuggestion.LowLimit = lowLimitPrice;
+                    BuyingSuggestion.HighLimit = highLimitPrice;
+                    break;
+                case "Sell":
+                    SellingSuggestion.LowLimit = lowLimitPrice;
+                    SellingSuggestion.HighLimit = highLimitPrice;
+                    break;
+                default:
+                    break;
+            }
         }
     }
 }

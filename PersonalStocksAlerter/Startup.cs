@@ -42,7 +42,6 @@ namespace PersonalStocksAlerter
                 app.UseDeveloperExceptionPage();
                 app.UseSwagger();
                 app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "PersonalStocksAlerter v1"));
-                app.UseSwaggerUI(c => c.DefaultModelExpandDepth(-1));
             }
 
             app.UseHttpsRedirection();
