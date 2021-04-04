@@ -29,9 +29,10 @@ namespace HP.PersonalStocks.Mgr
         }
         public AlertResult GetAlertResult()
         {
+            var result = new AlertResult();
             try
             {
-                return new AlertResult
+                result = new AlertResult
                 {
                     SuggestedAction = CheckForAlert(),
                     SuggestionMessage = GetSuggestionForCurrentSticker(),
@@ -40,12 +41,16 @@ namespace HP.PersonalStocks.Mgr
             }
             catch (Exception ex)
             {
-                return new AlertResult
+                result =  new AlertResult
                 {
                     Success = false,
                     ErrorMessage = "Failed to get Alert and Suggestion." + ex.Message
                 };
+            }finally
+            {
+
             }
+            return result;
         }
         private SuggestedAction CheckForAlert()
         {
@@ -68,7 +73,7 @@ namespace HP.PersonalStocks.Mgr
             var stdAlertHighLimit = new AlertInfo(2, 10);
             var stdAlertlLowLimit = new AlertInfo(2, 10);
             var suggestionResult = Factory.GetSuggestion(stdAlertHighLimit, stdAlertlLowLimit);
-            var suggestion = $" For Stock Symbol {CurrentSticker} {suggestionResult}";
+            var suggestion = $" For Stock Symbol {CurrentSticker}: {suggestionResult}";
             return suggestion;
         }
         private void GetHistoricalQuotesInfoAsync()
