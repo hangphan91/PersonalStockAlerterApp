@@ -40,22 +40,26 @@ namespace HP.PersonalStocks.Mgr.Factories
         {
             var maxStickerQuote = HistoricalQuotes.Max(s => s.High);
             var minStickerQuote = HistoricalQuotes.Min(s => s.Low);
-            CalculateHighAndLowLimitPriceForLowAlertInfo(stdLowAlertInfo);
-            if (minStickerQuote <= stdLowAlertInfo.HighLimit && stdLowAlertInfo.LowLimit < minStickerQuote)
+            var currentPrice = HistoricalQuotes.OrderByDescending(q => q.Date).FirstOrDefault();
+            CalculateHighAndLowLimitPriceForLowAlertInfo(stdLowAlertInfo, maxStickerQuote, minStickerQuote);
+            if (currentPrice?.Close <= stdLowAlertInfo.HighLimit)
             {
                 ToAlertToBuy = true;
             }
         }
 
-        private void CalculateHighAndLowLimitPriceForLowAlertInfo(AlertInfo stdLowAlertInfo)
+        private void CalculateHighAndLowLimitPriceForLowAlertInfo(AlertInfo stdLowAlertInfo,
+            decimal maxStickerQuote, decimal minStickerQuote)
         {
             var maxStdResult = StdDevResults.Max(s => s.StdDev);
             var maxStdItem = StdDevResults.Where(s => s.StdDev == maxStdResult).FirstOrDefault();
             var maxPrice = maxStdItem.StdDev * maxStdItem.ZScore + maxStdItem.Mean;
+            //maxPrice = Math.Max(maxPrice.Value, maxStickerQuote);
 
             var minStdResult = StdDevResults.Min(s => s.StdDev);
             var minStdItem = StdDevResults.Where(s => s.StdDev == minStdResult).FirstOrDefault();
             var minPrice = minStdItem.StdDev * minStdItem.ZScore + minStdItem.Mean;
+            //minPrice = Math.Min(minPrice.Value, minStickerQuote);
 
             var priceResultRange = maxPrice.Value - minPrice.Value;
             var lowLimitPriceRange = priceResultRange * (stdLowAlertInfo.ExceptedLowPercentage / 100);
@@ -68,22 +72,28 @@ namespace HP.PersonalStocks.Mgr.Factories
         {
             var maxStickerQuote = HistoricalQuotes.Max(s => s.High);
             var minStickerQuote = HistoricalQuotes.Min(s => s.Low);
-            CalculateHighAndLowLimitPriceForHighRangeAlertInfo(stdHighAlertInfo);
-            if (maxStickerQuote <= stdHighAlertInfo.HighLimit && stdHighAlertInfo.LowLimit < maxStickerQuote)
+            var currentPrice = HistoricalQuotes.OrderByDescending(q => q.Date).FirstOrDefault();
+
+            CalculateHighAndLowLimitPriceForHighRangeAlertInfo(stdHighAlertInfo,
+                maxStickerQuote, minStickerQuote);
+            if (stdHighAlertInfo.LowLimit < currentPrice?.Close)
             {
                 ToAlertToSell = true;
             }
         }
 
-        private void CalculateHighAndLowLimitPriceForHighRangeAlertInfo(AlertInfo stdHighAlertInfo)
+        private void CalculateHighAndLowLimitPriceForHighRangeAlertInfo(AlertInfo stdHighAlertInfo,
+            decimal maxStickerQuote, decimal minStickerQuote)
         {
             var maxStdResult = StdDevResults.Max(s => s.StdDev);
             var maxStdItem = StdDevResults.Where(s => s.StdDev == maxStdResult).FirstOrDefault();
             var maxPrice = maxStdItem.StdDev * maxStdItem.ZScore + maxStdItem.Mean;
+            //maxPrice = Math.Max(maxPrice.Value, maxStickerQuote);
 
             var minStdResult = StdDevResults.Min(s => s.StdDev);
             var minStdItem = StdDevResults.Where(s => s.StdDev == minStdResult).FirstOrDefault();
             var minPrice = minStdItem.StdDev * minStdItem.ZScore + minStdItem.Mean;
+            //minPrice = Math.Min(minPrice.Value, minStickerQuote);
 
             var priceResultRange = maxPrice.Value - minPrice.Value;
             var highLimitStdRange = priceResultRange * (stdHighAlertInfo.ExceptedHighPercentage / 100);
@@ -94,14 +104,26 @@ namespace HP.PersonalStocks.Mgr.Factories
 
         private void CalculateSuggestionPrices(AlertInfo stdHighAlertInfo, AlertInfo stdLowAlertInfo)
         {
-            CalculateHighAndLowLimitPriceForLowAlertInfo(stdLowAlertInfo);
+            var maxStickerQuote = HistoricalQuotes.Max(s => s.High);
+            var minStickerQuote = HistoricalQuotes.Min(s => s.Low);
+            CalculateHighAndLowLimitPriceForLowAlertInfo(stdLowAlertInfo,
+                maxStickerQuote, minStickerQuote);
+            CalculateHighAndLowLimitPriceForHighRangeAlertInfo(stdHighAlertInfo,
+                maxStickerQuote, maxStickerQuote);
+            if(stdHighAlertInfo.HighLimit > stdLowAlertInfo.HighLimit)
+                MakeSuggestions(stdHighAlertInfo, stdLowAlertInfo);
+            else
+                MakeSuggestions(stdLowAlertInfo, stdHighAlertInfo);
 
+        }
+
+        private void MakeSuggestions(AlertInfo stdHighAlertInfo, AlertInfo stdLowAlertInfo)
+        {
             BuyingSuggestion = new Suggestion
             {
                 HighLimit = stdLowAlertInfo.HighLimit,
                 LowLimit = stdLowAlertInfo.LowLimit
             };
-            CalculateHighAndLowLimitPriceForHighRangeAlertInfo(stdHighAlertInfo);
             SellingSuggestion = new Suggestion
             {
                 HighLimit = stdHighAlertInfo.HighLimit,

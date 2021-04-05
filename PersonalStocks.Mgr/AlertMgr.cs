@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using HP.PersonalStocks.Mgr.Factories;
+using HP.PersonalStocks.Mgr.Helpers;
 using HP.PersonalStocksAlerter.Models.Models;
 using Newtonsoft.Json;
 using Skender.Stock.Indicators;
@@ -34,8 +35,8 @@ namespace HP.PersonalStocks.Mgr
             {
                 result = new AlertResult
                 {
-                    SuggestedAction = CheckForAlert(),
                     SuggestionMessage = GetSuggestionForCurrentSticker(),
+                    SuggestedAction = CheckForAlert(),
                     Success = true
                 };
             }
@@ -48,24 +49,41 @@ namespace HP.PersonalStocks.Mgr
                 };
             }finally
             {
-
+                if (result.Success)
+                {
+                    var log = new LogResult
+                    {
+                        SuggestedAction = result.SuggestedAction,
+                        ErrorMessage = result.ErrorMessage,
+                        Success = result.Success,
+                        SuggestionMessage = result.SuggestionMessage,
+                        ExpectedHighPercent = ExceptedHighPercentage,
+                        ExpectedLowPercent = ExceptedLowPercentage,
+                        BuyingSuggestionHighLimit = Factory.Calculator.BuyingSuggestion.HighLimit,
+                        BuyingSuggestionLowLimit = Factory.Calculator.BuyingSuggestion.LowLimit,
+                        SellingSuggestionHighLimit = Factory.Calculator.SellingSuggestion.HighLimit,
+                        SellingSuggestionLowLimit = Factory.Calculator.SellingSuggestion.LowLimit,
+                        PostedTS = DateTime.Now
+                    };
+                    new WriteToText(log);
+                }
             }
             return result;
         }
         private SuggestedAction CheckForAlert()
         {
-            if (SendHighLimit())
-            {
-                var stdAlertHighLimit = new AlertInfo(ExceptedLowPercentage, ExceptedHighPercentage);
-                Factory.SetHighLimits(stdAlertHighLimit);
-            }
-            else
-            {
-                var stdAlertlLowLimit = new AlertInfo(ExceptedLowPercentage, ExceptedHighPercentage);
-                Factory.SetHighLimits(stdAlertlLowLimit);
-            }
+            var currentPrice = HistoricalQuotes.OrderByDescending(q => q.Date).FirstOrDefault();
+            if (currentPrice?.Close >= Factory.Calculator.SellingSuggestion.LowLimit)
+                return SuggestedAction.Sell;
+            else if (currentPrice?.Close < Factory.Calculator.SellingSuggestion.LowLimit && SendHighLimit())
+                return SuggestedAction.WaitToSell;
+            else if (Factory.Calculator.BuyingSuggestion.HighLimit >= currentPrice?.Close)
+                return SuggestedAction.Buy;
+            else if (Factory.Calculator.BuyingSuggestion.HighLimit < currentPrice?.Close && !SendHighLimit())
+                return SuggestedAction.WaitToBuy;
+            return SuggestedAction.Wait;
 
-            return Factory.SendToBuyOrSellAlert();
+            //return Factory.SendToBuyOrSellAlert();
         }
         private string GetSuggestionForCurrentSticker()
         {
@@ -101,7 +119,7 @@ namespace HP.PersonalStocks.Mgr
             }
             catch (Exception ex)
             {
-                throw new Exception("Failed to Get Historical Quotes Info.", ex);
+                //throw new Exception("Failed to Get Historical Quotes Info.", ex);
             }
         }
         private void GetQuoteAndStdIndicator()
@@ -118,7 +136,7 @@ namespace HP.PersonalStocks.Mgr
                 .Where(q => q.Date.Date <= DateTime.Now.Date)
                 .OrderByDescending(q => q.Date)
                 .FirstOrDefault();
-            var inHighRange = currentQuotePrice !=null && currentQuotePrice.Open >= quoteAveragePrice;
+            var inHighRange = currentQuotePrice !=null && currentQuotePrice.Close >= quoteAveragePrice;
             return inHighRange;
         }
         

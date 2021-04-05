@@ -11,6 +11,8 @@
     <PackageReference Include="Trady.Core" Version="3.2.9" />
     <PackageReference Include="Trady.Analysis" Version="3.2.8" />
     <PackageReference Include="Skender.Stock.Indicators" Version="1.10.6" />
+    <PackageReference Include="ClosedXML" Version="0.95.4" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="2.12.3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PersonalStocksAlerter.Models\PersonalStocksAlerter.Models.csproj" />
