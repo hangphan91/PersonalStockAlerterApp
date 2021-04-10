@@ -1,18 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace HP.PersonalStocksAlerter.Models.Models
 {
     public class AlertResult
     {
-        [JsonConverter(typeof(JsonStringEnumConverter))]
-        public SuggestedAction SuggestedAction { get; set; }
+        public List<string> SuggestedActions { get; set; }
         public string SuggestionMessage { get; set; }
         public bool Success { get; set; }
         public string ErrorMessage { get; set; }
+        public string Symbol { get; set; }
         public AlertResult()
         {
-            SuggestedAction = SuggestedAction.Wait;
+            SuggestedActions = new List<string>();
             SuggestionMessage = string.Empty;
         }
     }

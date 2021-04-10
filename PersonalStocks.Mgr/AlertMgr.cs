@@ -20,13 +20,13 @@ namespace HP.PersonalStocks.Mgr
         public AlertFactory Factory { get; set; }
         public decimal ExceptedLowPercentage { get; set; }
         public decimal ExceptedHighPercentage { get; set; }
-        public AlertMgr(string currentSticker, decimal exceptedLowPercentage = 10, decimal exceptedHighPercentage = 10)
+        public Quote CurrentQuote { get; set; }
+        public AlertMgr(string currentSticker)
         {
             CurrentSticker = currentSticker;
-            ExceptedLowPercentage = exceptedLowPercentage;
-            ExceptedHighPercentage = exceptedHighPercentage;
             GetQuoteAndStdIndicator();
             Factory = new AlertFactory(StdDevResults, HistoricalQuotes);
+            CurrentQuote = HistoricalQuotes.OrderByDescending(q => q.Date).FirstOrDefault();
         }
         public AlertResult GetAlertResult()
         {
@@ -36,8 +36,11 @@ namespace HP.PersonalStocks.Mgr
                 result = new AlertResult
                 {
                     SuggestionMessage = GetSuggestionForCurrentSticker(),
-                    SuggestedAction = CheckForAlert(),
-                    Success = true
+                    SuggestedActions = new List<string> {
+                       // CheckForAlert().ToString(),
+                        CheckForSecondAlert().ToString() },
+                    Success = true,
+                    Symbol = CurrentSticker
                 };
             }
             catch (Exception ex)
@@ -53,17 +56,11 @@ namespace HP.PersonalStocks.Mgr
                 {
                     var log = new LogResult
                     {
-                        SuggestedAction = result.SuggestedAction,
-                        ErrorMessage = result.ErrorMessage,
-                        Success = result.Success,
+                        SuggestedActions = string.Join(", ",result.SuggestedActions),
                         SuggestionMessage = result.SuggestionMessage,
-                        ExpectedHighPercent = ExceptedHighPercentage,
-                        ExpectedLowPercent = ExceptedLowPercentage,
-                        BuyingSuggestionHighLimit = Factory.Calculator.BuyingSuggestion.HighLimit,
-                        BuyingSuggestionLowLimit = Factory.Calculator.BuyingSuggestion.LowLimit,
-                        SellingSuggestionHighLimit = Factory.Calculator.SellingSuggestion.HighLimit,
-                        SellingSuggestionLowLimit = Factory.Calculator.SellingSuggestion.LowLimit,
-                        PostedTS = DateTime.Now
+                        PostedTS = DateTime.Now,
+                        CurrentPrice = CurrentQuote?.Close.ToString(),
+                        StockSymbol = CurrentSticker
                     };
                     new WriteToText(log);
                 }
@@ -83,15 +80,40 @@ namespace HP.PersonalStocks.Mgr
                 return SuggestedAction.WaitToBuy;
             return SuggestedAction.Wait;
 
-            //return Factory.SendToBuyOrSellAlert();
+        }
+        private SuggestedAction CheckForSecondAlert()
+        {
+            var currentPrice = HistoricalQuotes.OrderByDescending(q => q.Date).FirstOrDefault();
+            if (currentPrice?.Close <= Factory.SecondCalculator.SellingSuggestion.LowLimit)
+                return SuggestedAction.StrongSell;
+             else if(currentPrice?.Close >= Factory.SecondCalculator.SellingSuggestion.HighLimit)
+                return SuggestedAction.Sell;
+            else if (currentPrice?.Close >= Factory.SecondCalculator.HoldOrSellSuggestion.LowLimit &&
+                currentPrice?.Close < Factory.SecondCalculator.HoldOrSellSuggestion.HighLimit)
+                return SuggestedAction.HoldPriceCouldGoUp;
+            else if (Factory.SecondCalculator.HoldOrBuySuggestion.HighLimit >= currentPrice?.Close &&
+                currentPrice?.Close > Factory.SecondCalculator.HoldOrBuySuggestion.LowLimit)
+                return SuggestedAction.SellPriceCouldGoDown;
+            else if (Factory.SecondCalculator.BuyingSuggestion.HighLimit >= currentPrice?.Close &&
+                Factory.SecondCalculator.BuyingSuggestion.LowLimit < currentPrice?.Close)
+            {
+                if (currentPrice?.Close < Factory.SecondCalculator.FiveBasicNumber.Mean)
+                    return SuggestedAction.StrongBuy;
+                return SuggestedAction.Buy;
+            } 
+            else  return SuggestedAction.Wait;
         }
         private string GetSuggestionForCurrentSticker()
         {
             GetQuoteAndStdIndicator();
             var stdAlertHighLimit = new AlertInfo(2, 10);
             var stdAlertlLowLimit = new AlertInfo(2, 10);
-            var suggestionResult = Factory.GetSuggestion(stdAlertHighLimit, stdAlertlLowLimit);
-            var suggestion = $" For Stock Symbol {CurrentSticker}: {suggestionResult}";
+            //var suggestionResult = Factory.GetSuggestion(stdAlertHighLimit, stdAlertlLowLimit);
+            var secondSuggestionResult = Factory.GetSecondSuggestion(stdAlertHighLimit, stdAlertlLowLimit);
+            var currentPrice = Math.Round(CurrentQuote.Close, 2);
+            var suggestion = $" For Stock Symbol {CurrentSticker} At Current Price {currentPrice}." +
+               // $"1st Suggestion: {suggestionResult}\n" + 
+                $" Our 2nd Suggestion: {secondSuggestionResult}";
             return suggestion;
         }
         private void GetHistoricalQuotesInfoAsync()
@@ -119,7 +141,7 @@ namespace HP.PersonalStocks.Mgr
             }
             catch (Exception ex)
             {
-                //throw new Exception("Failed to Get Historical Quotes Info.", ex);
+                throw new Exception($"Failed to Get Historical Quotes Info. {ex.Message}");
             }
         }
         private void GetQuoteAndStdIndicator()

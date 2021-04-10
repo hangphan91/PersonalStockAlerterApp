@@ -68,6 +68,7 @@ namespace HP.PersonalStocks.Mgr.Factories
             stdLowAlertInfo.HighLimit = lowLimitPriceRange + minPrice.Value;
         }
 
+
         private void CaculateHighLimitResult(AlertInfo stdHighAlertInfo)
         {
             var maxStickerQuote = HistoricalQuotes.Max(s => s.High);

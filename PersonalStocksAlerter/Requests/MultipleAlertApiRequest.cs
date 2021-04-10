@@ -8,6 +8,6 @@ namespace HP.PersonalStocksAlerter.Api.Requests
     public class MultipleAlertApiRequest
     {
         [Required]
-        public List<AlertApiRequest> StockStickers { get; set; }
+        public List<string> StockStickers { get; set; }
     }
 }

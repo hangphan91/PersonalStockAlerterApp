@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
+
 namespace HP.PersonalStocksAlerter.Models.Models
 {
     public class LogResult
     {
-        public SuggestedAction SuggestedAction { get; set; }
+        public string SuggestedActions { get; set; }
         public string SuggestionMessage { get; set; }
         public bool Success { get; set; }
         public string ErrorMessage { get; set; }
@@ -14,5 +16,8 @@ namespace HP.PersonalStocksAlerter.Models.Models
         public decimal ExpectedLowPercent { get; set; }
         public decimal ExpectedHighPercent { get; set; }
         public DateTime PostedTS { get; set; }
+        public string CurrentPrice { get; set; }
+        public string EstimatedPrices { get; set; }
+        public string StockSymbol { get; set; }
     }
 }

@@ -7,6 +7,16 @@ namespace HP.PersonalStocksAlerter.Models.Models
         WaitToBuy,
         WaitToSell,
         Buy,
-        Sell
+        Sell,
+        HoldPriceCouldGoUp,
+        SellPriceCouldGoDown,
+        StrongBuy,
+        StrongSell
     };
+    public enum BellShapeValue
+    {
+        SixtyEight,
+        NineTy,
+        NinetyFine
+    }
 }

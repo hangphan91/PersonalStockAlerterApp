@@ -16,11 +16,13 @@ namespace HP.PersonalStocks.Mgr.Factories
         public bool HasLowStdLimit { get; set; }
         public bool HasHighStdLimit { get; set; }
         public Calculator Calculator { get; set; }
+        public SecondCalculator SecondCalculator { get; set; }
         public AlertFactory(List<StdDevResult> stdDevResults, List<Quote> historicalQuotes)
         {
             HistoricalQuotes = historicalQuotes;
             StdDevResults = stdDevResults;
-            Calculator = new Calculator(HistoricalQuotes, StdDevResults);
+            //Calculator = new Calculator(HistoricalQuotes, StdDevResults);
+            SecondCalculator = new SecondCalculator(HistoricalQuotes, stdDevResults);
         }
         public SuggestedAction SendToBuyOrSellAlert()
         {
@@ -49,6 +51,10 @@ namespace HP.PersonalStocks.Mgr.Factories
         {
             return Calculator.GetSuggestions(stdAlertHighLimitInfo, stdAlertLowLimitInfo);
         }
-        
+
+        internal string GetSecondSuggestion(AlertInfo stdAlertHighLimit, AlertInfo stdAlertlLowLimit)
+        {
+            return SecondCalculator.GetSuggestions(stdAlertlLowLimit, stdAlertlLowLimit);
+        }
     }
 }

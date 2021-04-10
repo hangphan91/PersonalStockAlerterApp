@@ -36,7 +36,7 @@ namespace HP.PersonalStocksAlerter.Api.Controllers
                 {
                     tasks.Add(Task.Factory.StartNew(()=>
                     {
-                        return GetSingleAlert(item);
+                        return GetSingleAlert(new AlertApiRequest { StickerSymbol = item});
                     }));
                 }
                 Task.WaitAll(tasks.ToArray());
@@ -85,14 +85,10 @@ namespace HP.PersonalStocksAlerter.Api.Controllers
 
         private static AlertResult GetSingleAlert(AlertApiRequest request)
         {
-            var symbol = request.StockInfo.StickerSymbol.ToUpper();
-            var lowPercentage = request.StockInfo.LowPercentage;
-            var highPercentage = request.StockInfo.HighPercentage;
+            var symbol = request.StickerSymbol.ToUpper();
             var task = Task.Run(() =>
             {
-                var mgr = (lowPercentage.HasValue && highPercentage.HasValue
-                && lowPercentage.Value > 0 && highPercentage.Value > 0) ?
-                new AlertMgr(symbol, lowPercentage.Value, highPercentage.Value) : new AlertMgr(symbol);
+                var mgr =  new AlertMgr(symbol) ;
                 return mgr;
             });
             task.Wait();
