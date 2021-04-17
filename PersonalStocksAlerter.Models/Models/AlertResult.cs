@@ -11,6 +11,8 @@ namespace HP.PersonalStocksAlerter.Models.Models
         public bool Success { get; set; }
         public string ErrorMessage { get; set; }
         public string Symbol { get; set; }
+        public string CurrentRSIValue { get; set; }
+        public string CurrentChaikinOSCValue { get; set; }
         public AlertResult()
         {
             SuggestedActions = new List<string>();

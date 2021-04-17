@@ -52,9 +52,9 @@ namespace HP.PersonalStocks.Mgr.Factories
             return Calculator.GetSuggestions(stdAlertHighLimitInfo, stdAlertLowLimitInfo);
         }
 
-        internal string GetSecondSuggestion(AlertInfo stdAlertHighLimit, AlertInfo stdAlertlLowLimit)
+        internal string GetSecondSuggestion()
         {
-            return SecondCalculator.GetSuggestions(stdAlertlLowLimit, stdAlertlLowLimit);
+            return SecondCalculator.GetSuggestions();
         }
     }
 }

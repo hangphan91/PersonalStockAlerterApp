@@ -21,12 +21,16 @@ namespace HP.PersonalStocks.Mgr
         public decimal ExceptedLowPercentage { get; set; }
         public decimal ExceptedHighPercentage { get; set; }
         public Quote CurrentQuote { get; set; }
+        public List<RsiResult> RsiResults { get; set; }
+        public List<ChaikinOscResult> ChaikinOscResults { get; set; }
         public AlertMgr(string currentSticker)
         {
             CurrentSticker = currentSticker;
             GetQuoteAndStdIndicator();
             Factory = new AlertFactory(StdDevResults, HistoricalQuotes);
             CurrentQuote = HistoricalQuotes.OrderByDescending(q => q.Date).FirstOrDefault();
+            RsiResults = new List<RsiResult>();
+            ChaikinOscResults = new List<ChaikinOscResult>();
         }
         public AlertResult GetAlertResult()
         {
@@ -40,7 +44,9 @@ namespace HP.PersonalStocks.Mgr
                        // CheckForAlert().ToString(),
                         CheckForSecondAlert().ToString() },
                     Success = true,
-                    Symbol = CurrentSticker
+                    Symbol = CurrentSticker,
+                    CurrentRSIValue = GetRSIIndicator(),
+                    CurrentChaikinOSCValue = GetChaikinOSCValue()
                 };
             }
             catch (Exception ex)
@@ -60,13 +66,31 @@ namespace HP.PersonalStocks.Mgr
                         SuggestionMessage = result.SuggestionMessage,
                         PostedTS = DateTime.Now,
                         CurrentPrice = CurrentQuote?.Close.ToString(),
-                        StockSymbol = CurrentSticker
+                        StockSymbol = CurrentSticker,
+                        CurrentRsiValue = result.CurrentRSIValue,
+                        CurrentOSCValue = result.CurrentChaikinOSCValue
                     };
                     new WriteToText(log);
                 }
             }
             return result;
         }
+
+        private string GetChaikinOSCValue()
+        {
+            var instruction = $"Buy When OSC Positive. Sell When OSC Negative.";
+            var osdValue = ChaikinOscResults.LastOrDefault().Oscillator.Value;
+            var isPossitive = osdValue > 0;
+            return $"{(isPossitive? "Positive": "Negative")} ({instruction})";
+        }
+
+        private string GetRSIIndicator()
+        {
+            var instruction = "Buy When RSI < 30. Sell When RSI > 70.";
+            var rsiValue = Math.Round(RsiResults.LastOrDefault().Rsi.Value, 2).ToString();
+            return $"{rsiValue} ({instruction})";
+        }
+
         private SuggestedAction CheckForAlert()
         {
             var currentPrice = HistoricalQuotes.OrderByDescending(q => q.Date).FirstOrDefault();
@@ -109,11 +133,11 @@ namespace HP.PersonalStocks.Mgr
             var stdAlertHighLimit = new AlertInfo(2, 10);
             var stdAlertlLowLimit = new AlertInfo(2, 10);
             //var suggestionResult = Factory.GetSuggestion(stdAlertHighLimit, stdAlertlLowLimit);
-            var secondSuggestionResult = Factory.GetSecondSuggestion(stdAlertHighLimit, stdAlertlLowLimit);
+            var secondSuggestionResult = Factory.GetSecondSuggestion();
             var currentPrice = Math.Round(CurrentQuote.Close, 2);
-            var suggestion = $" For Stock Symbol {CurrentSticker} At Current Price {currentPrice}." +
+            var suggestion = $"{CurrentSticker}'s Current Price: {currentPrice}." +
                // $"1st Suggestion: {suggestionResult}\n" + 
-                $" Our 2nd Suggestion: {secondSuggestionResult}";
+                $"Our 2nd Suggestion: {secondSuggestionResult}";
             return suggestion;
         }
         private void GetHistoricalQuotesInfoAsync()
@@ -148,6 +172,11 @@ namespace HP.PersonalStocks.Mgr
         {
             GetHistoricalQuotesInfoAsync();
             StdDevResults = Indicator.GetStdDev(HistoricalQuotes,10).ToList();
+            if(HistoricalQuotes.Count > 114)
+            {
+                RsiResults = Indicator.GetRsi(HistoricalQuotes).ToList();
+                ChaikinOscResults = Indicator.GetChaikinOsc(HistoricalQuotes).ToList();
+            }
         }
        
         private bool SendHighLimit()

@@ -19,5 +19,7 @@ namespace HP.PersonalStocksAlerter.Models.Models
         public string CurrentPrice { get; set; }
         public string EstimatedPrices { get; set; }
         public string StockSymbol { get; set; }
+        public string CurrentRsiValue { get; set; }
+        public string CurrentOSCValue { get; set; }
     }
 }

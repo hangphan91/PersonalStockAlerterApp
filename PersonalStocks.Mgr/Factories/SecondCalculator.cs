@@ -100,14 +100,17 @@ namespace HP.PersonalStocks.Mgr.Factories
             };
         }
 
-        public string GetSuggestions(AlertInfo stdHighAlertInfo, AlertInfo stdLowAlertInfo)
+        public string GetSuggestions()
         {
             CalculateSuggestionPrices();
 
             var suggestionList = new List<string>();
             var buyLowLimitPrice = Math.Round(BuyingSuggestion.LowLimit, 2);
             var buyHighLimitPrice = Math.Round(BuyingSuggestion.HighLimit, 2);
-            suggestionList.Add(SuggestionString(buyLowLimitPrice, buyHighLimitPrice, SuggestedAction.Buy));
+            var mean = Math.Round(FiveBasicNumber.Mean, 2);
+
+            suggestionList.Add(SuggestionString(mean, buyHighLimitPrice, SuggestedAction.Buy));
+            suggestionList.Add(SuggestionString(buyLowLimitPrice, mean, SuggestedAction.StrongBuy));
 
             var sellLowLimitPrice = Math.Round(SellingSuggestion.LowLimit, 2);
             var sellHighLimitPrice = Math.Round(SellingSuggestion.HighLimit, 2);
@@ -127,9 +130,9 @@ namespace HP.PersonalStocks.Mgr.Factories
             decimal highLimitPrice, SuggestedAction action)
         {
             if (action == SuggestedAction.Sell)
-                return $"Sell When Price Is Lower Than {lowLimitPrice} And When Price Is Higher Than {highLimitPrice}.";
+                return $" StrongSell When x < {lowLimitPrice}. Sell When x > {highLimitPrice}.";
 
-            return $"{action} Between {lowLimitPrice} And {highLimitPrice}.";
+            return $"{action} When {lowLimitPrice} < x < {highLimitPrice}.";
 
         }
 
