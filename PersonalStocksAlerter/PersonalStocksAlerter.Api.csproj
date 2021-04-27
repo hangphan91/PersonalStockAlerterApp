@@ -6,6 +6,13 @@
   </PropertyGroup>
 
   <PropertyGroup Condition=" '$(RunConfiguration)' == 'PersonalStocksAlerter' " />
+
+  <ItemGroup>
+    <Compile Remove="Validations\**" />
+    <Content Remove="Validations\**" />
+    <EmbeddedResource Remove="Validations\**" />
+    <None Remove="Validations\**" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
     <PackageReference Include="Swashbuckle.AspNetCore.Swagger" Version="6.1.1" />
@@ -15,7 +22,6 @@
     <Folder Include="Requests\" />
     <Folder Include="Responses\" />
     <Folder Include="ActionResults\" />
-    <Folder Include="Validations\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PersonalStocksAlerter.Models\PersonalStocksAlerter.Models.csproj">

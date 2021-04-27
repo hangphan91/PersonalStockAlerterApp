@@ -17,12 +17,14 @@ namespace HP.PersonalStocks.Mgr.Factories
         public bool HasHighStdLimit { get; set; }
         public Calculator Calculator { get; set; }
         public SecondCalculator SecondCalculator { get; set; }
+        public IndicatorSuggestions IndicatorSuggestions { get; set; }
         public AlertFactory(List<StdDevResult> stdDevResults, List<Quote> historicalQuotes)
         {
             HistoricalQuotes = historicalQuotes;
             StdDevResults = stdDevResults;
             //Calculator = new Calculator(HistoricalQuotes, StdDevResults);
             SecondCalculator = new SecondCalculator(HistoricalQuotes, stdDevResults);
+            IndicatorSuggestions = new IndicatorSuggestions();
         }
         public SuggestedAction SendToBuyOrSellAlert()
         {

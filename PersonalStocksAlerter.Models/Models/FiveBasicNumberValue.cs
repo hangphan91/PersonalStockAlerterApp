@@ -7,6 +7,6 @@ namespace HP.PersonalStocksAlerter.Models.Models
         public decimal SixtyEightLow { get; set; }
         public decimal Mean { get; set; }
         public decimal SixtyEightHigh { get; set; }
-        public decimal NinetyHigh { get; set; }
+        public decimal NinetyNineHigh { get; set; }
     }
 }

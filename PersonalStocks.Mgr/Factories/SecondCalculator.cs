@@ -52,7 +52,7 @@ namespace HP.PersonalStocks.Mgr.Factories
             var ninetyLowLimitPrice = ninetyLowLimit.StdDev * ninetyLowLimit.ZScore + ninetyLowLimit.Mean;
 
             var ninetyHighLimit = StdDevResults.Where(t => t.ZScore <= (Decimal)2.0 && t.ZScore > (Decimal)1.0).OrderByDescending(t=>t.ZScore).FirstOrDefault();
-            var ninetyHighLimitPrice = ninetyHighLimit.StdDev * ninetyHighLimit.ZScore + ninetyHighLimit.Mean;
+            var ninetynineHighLimitPrice = HistoricalQuotes.Max(q=>q.Close);
 
             var mean = StdDevResults.Where(t => t.ZScore < (Decimal)(0) && t.ZScore >(Decimal)(-1)).OrderByDescending(t=>t.ZScore).FirstOrDefault();
             var meanPrice = mean.StdDev * mean.ZScore + mean.Mean;
@@ -61,7 +61,7 @@ namespace HP.PersonalStocks.Mgr.Factories
                 sixtyEightLowLimitPrice.Value,
                 sixtyEightHighLimitPrice.Value,
                 meanPrice.Value,
-                ninetyHighLimitPrice.Value,
+                ninetynineHighLimitPrice,
                 ninetyLowLimitPrice.Value
             };
             var sorted = List.OrderBy(t=>t).ToList();
@@ -71,7 +71,7 @@ namespace HP.PersonalStocks.Mgr.Factories
                 SixtyEightLow = sorted[1],
                 Mean = sorted[2],
                 SixtyEightHigh = sorted[3],
-                NinetyHigh = sorted[4]
+                NinetyNineHigh = sorted[4] * ((decimal)1.1)
             };
         }
 
@@ -85,7 +85,7 @@ namespace HP.PersonalStocks.Mgr.Factories
             };
             SellingSuggestion = new Suggestion
             {
-                HighLimit = FiveBasicNumber.NinetyHigh,
+                HighLimit = FiveBasicNumber.NinetyNineHigh,
                 LowLimit = FiveBasicNumber.NinetyLow
             };
             HoldOrBuySuggestion = new Suggestion
@@ -95,7 +95,7 @@ namespace HP.PersonalStocks.Mgr.Factories
             };
             HoldOrSellSuggestion = new Suggestion
             {
-                HighLimit = FiveBasicNumber.NinetyHigh,
+                HighLimit = FiveBasicNumber.NinetyNineHigh,
                 LowLimit = FiveBasicNumber.SixtyEightHigh
             };
         }
@@ -118,7 +118,7 @@ namespace HP.PersonalStocks.Mgr.Factories
 
             var holdToBuyLowLimitPrice = Math.Round(HoldOrBuySuggestion.LowLimit, 2);
             var holdToBuyHighLimitPrice = Math.Round(HoldOrBuySuggestion.HighLimit, 2);
-            suggestionList.Add(SuggestionString(holdToBuyLowLimitPrice, holdToBuyHighLimitPrice, SuggestedAction.SellPriceCouldGoDown));
+            suggestionList.Add(SuggestionString(holdToBuyLowLimitPrice, holdToBuyHighLimitPrice, SuggestedAction.HoldPriceCouldGoDown));
 
             var holdToSellLowLimitPrice = Math.Round(HoldOrSellSuggestion.LowLimit, 2);
             var holdToSellHighLimitPrice = Math.Round(HoldOrSellSuggestion.HighLimit, 2);

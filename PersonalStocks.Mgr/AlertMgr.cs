@@ -23,6 +23,7 @@ namespace HP.PersonalStocks.Mgr
         public Quote CurrentQuote { get; set; }
         public List<RsiResult> RsiResults { get; set; }
         public List<ChaikinOscResult> ChaikinOscResults { get; set; }
+        public SuggestedAction FinalSuggestion { get; set; }
         public AlertMgr(string currentSticker)
         {
             CurrentSticker = currentSticker;
@@ -37,58 +38,112 @@ namespace HP.PersonalStocks.Mgr
             var result = new AlertResult();
             try
             {
+
                 result = new AlertResult
                 {
                     SuggestionMessage = GetSuggestionForCurrentSticker(),
-                    SuggestedActions = new List<string> {
-                       // CheckForAlert().ToString(),
-                        CheckForSecondAlert().ToString() },
                     Success = true,
                     Symbol = CurrentSticker,
-                    CurrentRSIValue = GetRSIIndicator(),
-                    CurrentChaikinOSCValue = GetChaikinOSCValue()
+                    CurrentRSIValue = Factory.IndicatorSuggestions.GetRSIIndicator(RsiResults),
+                    CurrentChaikinOSCValue = Factory.IndicatorSuggestions.GetChaikinOSCValue(ChaikinOscResults),
+                    CurrentPrice = Math.Round(CurrentQuote.Close, 2)
                 };
+                var secondSuggestion = CheckForSecondAlert();
+                result.SuggestedActions.Add(secondSuggestion.ToString());
+                var indicatorSuggestions = CheckForIndicatorSuggestions();
+                List<string> suggestions = GetStringSuggestions(indicatorSuggestions);
+                result.SuggestedActions.AddRange(suggestions);
+                FinalSuggestion = GetFinalSuggestion(indicatorSuggestions, secondSuggestion);
+                result.FinalSuggestion = FinalSuggestion.ToString();
             }
             catch (Exception ex)
             {
-                result =  new AlertResult
+                result = new AlertResult
                 {
                     Success = false,
                     ErrorMessage = "Failed to get Alert and Suggestion." + ex.Message
                 };
-            }finally
+            }
+            finally
             {
                 if (result.Success)
                 {
-                    var log = new LogResult
-                    {
-                        SuggestedActions = string.Join(", ",result.SuggestedActions),
-                        SuggestionMessage = result.SuggestionMessage,
-                        PostedTS = DateTime.Now,
-                        CurrentPrice = CurrentQuote?.Close.ToString(),
-                        StockSymbol = CurrentSticker,
-                        CurrentRsiValue = result.CurrentRSIValue,
-                        CurrentOSCValue = result.CurrentChaikinOSCValue
-                    };
-                    new WriteToText(log);
+                    SuggestionMgr.SaveSuggestion(result);
                 }
             }
             return result;
         }
 
-        private string GetChaikinOSCValue()
+        private SuggestedAction GetFinalSuggestion(List<SuggestedAction> indicatorSuggestions,
+            SuggestedAction secondSuggestion)
         {
-            var instruction = $"Buy When OSC Positive. Sell When OSC Negative.";
-            var osdValue = ChaikinOscResults.LastOrDefault().Oscillator.Value;
-            var isPossitive = osdValue > 0;
-            return $"{(isPossitive? "Positive": "Negative")} ({instruction})";
+            var list = new List<SuggestedAction>
+            {
+                secondSuggestion
+            };
+            list.AddRange(indicatorSuggestions);
+            var actions = new List<SuggestedAction>();
+            foreach (var item in indicatorSuggestions)
+            {
+                switch (item)
+                {
+                    case SuggestedAction.OSCToBuy:
+                    case SuggestedAction.RSIToBuy:
+                        actions.Add(SuggestedAction.Buy);
+                        break;
+                    case SuggestedAction.RSIToWait:
+                        actions.Add(SuggestedAction.Wait);
+                        break;
+                    case SuggestedAction.OSCToSell:
+                    case SuggestedAction.RSIToSell:
+                        actions.Add(SuggestedAction.Sell);
+                        break;
+                }
+            }
+            if (actions.All(a => a == SuggestedAction.Sell) &&
+                secondSuggestion == SuggestedAction.BuyTheDip)
+                return SuggestedAction.BuyTheDip;
+            else if (actions.All(a => a == SuggestedAction.Buy) &&
+                (secondSuggestion == SuggestedAction.Buy ||
+                secondSuggestion == SuggestedAction.StrongBuy))
+                return SuggestedAction.StrongBuy;
+            else if (actions.Any(a => a == SuggestedAction.Buy)
+                && actions.Any(a => a != SuggestedAction.Sell))
+                return SuggestedAction.Buy;
+            else if (actions.Any(a => a == SuggestedAction.Sell)
+                 && actions.Any(a => a != SuggestedAction.Buy))
+                return SuggestedAction.Sell;
+            else
+                return SuggestedAction.Wait;
+
         }
 
-        private string GetRSIIndicator()
+        private static List<string> GetStringSuggestions(List<SuggestedAction> indicatorSuggestions)
         {
-            var instruction = "Buy When RSI < 30. Sell When RSI > 70.";
-            var rsiValue = Math.Round(RsiResults.LastOrDefault().Rsi.Value, 2).ToString();
-            return $"{rsiValue} ({instruction})";
+            var suggestions = new List<string>();
+            foreach (var item in indicatorSuggestions)
+            {
+                suggestions.Add(item.ToString());
+            }
+
+            return suggestions;
+        }
+
+        private List<SuggestedAction> CheckForIndicatorSuggestions()
+        {
+            var list = new List<SuggestedAction>();
+            if (Factory.IndicatorSuggestions.OSCToBuy)
+                list.Add(SuggestedAction.OSCToBuy);
+            else
+                list.Add(SuggestedAction.OSCToSell);
+            if (Factory.IndicatorSuggestions.RSIToBuy)
+                list.Add(SuggestedAction.RSIToBuy);
+            else if (Factory.IndicatorSuggestions.RSIToSell)
+                list.Add(SuggestedAction.RSIToSell);
+            else
+                list.Add(SuggestedAction.RSIToWait);
+
+            return list;
         }
 
         private SuggestedAction CheckForAlert()
@@ -109,43 +164,39 @@ namespace HP.PersonalStocks.Mgr
         {
             var currentPrice = HistoricalQuotes.OrderByDescending(q => q.Date).FirstOrDefault();
             if (currentPrice?.Close <= Factory.SecondCalculator.SellingSuggestion.LowLimit)
-                return SuggestedAction.StrongSell;
-             else if(currentPrice?.Close >= Factory.SecondCalculator.SellingSuggestion.HighLimit)
+                return SuggestedAction.BuyTheDip;
+            else if (currentPrice?.Close >= Factory.SecondCalculator.SellingSuggestion.HighLimit)
                 return SuggestedAction.Sell;
             else if (currentPrice?.Close >= Factory.SecondCalculator.HoldOrSellSuggestion.LowLimit &&
                 currentPrice?.Close < Factory.SecondCalculator.HoldOrSellSuggestion.HighLimit)
                 return SuggestedAction.HoldPriceCouldGoUp;
             else if (Factory.SecondCalculator.HoldOrBuySuggestion.HighLimit >= currentPrice?.Close &&
                 currentPrice?.Close > Factory.SecondCalculator.HoldOrBuySuggestion.LowLimit)
-                return SuggestedAction.SellPriceCouldGoDown;
+                return SuggestedAction.HoldPriceCouldGoDown;
             else if (Factory.SecondCalculator.BuyingSuggestion.HighLimit >= currentPrice?.Close &&
                 Factory.SecondCalculator.BuyingSuggestion.LowLimit < currentPrice?.Close)
             {
                 if (currentPrice?.Close < Factory.SecondCalculator.FiveBasicNumber.Mean)
                     return SuggestedAction.StrongBuy;
                 return SuggestedAction.Buy;
-            } 
-            else  return SuggestedAction.Wait;
+            }
+            else return SuggestedAction.Wait;
         }
         private string GetSuggestionForCurrentSticker()
         {
             GetQuoteAndStdIndicator();
-            var stdAlertHighLimit = new AlertInfo(2, 10);
-            var stdAlertlLowLimit = new AlertInfo(2, 10);
-            //var suggestionResult = Factory.GetSuggestion(stdAlertHighLimit, stdAlertlLowLimit);
             var secondSuggestionResult = Factory.GetSecondSuggestion();
             var currentPrice = Math.Round(CurrentQuote.Close, 2);
             var suggestion = $"{CurrentSticker}'s Current Price: {currentPrice}." +
-               // $"1st Suggestion: {suggestionResult}\n" + 
-                $"Our 2nd Suggestion: {secondSuggestionResult}";
+                $"Suggestion: {secondSuggestionResult}";
             return suggestion;
         }
         private void GetHistoricalQuotesInfoAsync()
         {
             try
             {
-                var task = Task.Run(()=>
-                Yahoo.GetHistoricalAsync( CurrentSticker, DateTime.Now.AddMonths(-12), DateTime.Now, Period.Daily));
+                var task = Task.Run(() =>
+                Yahoo.GetHistoricalAsync(CurrentSticker, DateTime.Now.AddMonths(-12), DateTime.Now, Period.Daily));
                 task.Wait();
                 var historicalData = task.Result;
                 HistoricalQuotes = new List<Quote>();
@@ -158,10 +209,10 @@ namespace HP.PersonalStocks.Mgr
                         Date = item.DateTime,
                         High = item.High,
                         Low = item.Low,
-                        Volume= item.Volume
+                        Volume = item.Volume
                     });
                 }
-                
+
             }
             catch (Exception ex)
             {
@@ -170,15 +221,22 @@ namespace HP.PersonalStocks.Mgr
         }
         private void GetQuoteAndStdIndicator()
         {
-            GetHistoricalQuotesInfoAsync();
-            StdDevResults = Indicator.GetStdDev(HistoricalQuotes,10).ToList();
-            if(HistoricalQuotes.Count > 114)
+            try
             {
-                RsiResults = Indicator.GetRsi(HistoricalQuotes).ToList();
-                ChaikinOscResults = Indicator.GetChaikinOsc(HistoricalQuotes).ToList();
+                GetHistoricalQuotesInfoAsync();
+                StdDevResults = Indicator.GetStdDev(HistoricalQuotes, 10).ToList();
+                if (HistoricalQuotes.Count > 114)
+                {
+                    RsiResults = Indicator.GetRsi(HistoricalQuotes).ToList();
+                    ChaikinOscResults = Indicator.GetChaikinOsc(HistoricalQuotes).ToList();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Failed to get Data");
             }
         }
-       
+
         private bool SendHighLimit()
         {
             var quoteAveragePrice = HistoricalQuotes.Average(s => s.Close);
@@ -187,9 +245,9 @@ namespace HP.PersonalStocks.Mgr
                 .Where(q => q.Date.Date <= DateTime.Now.Date)
                 .OrderByDescending(q => q.Date)
                 .FirstOrDefault();
-            var inHighRange = currentQuotePrice !=null && currentQuotePrice.Close >= quoteAveragePrice;
+            var inHighRange = currentQuotePrice != null && currentQuotePrice.Close >= quoteAveragePrice;
             return inHighRange;
         }
-        
+
     }
 }

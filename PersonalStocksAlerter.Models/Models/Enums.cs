@@ -9,9 +9,14 @@ namespace HP.PersonalStocksAlerter.Models.Models
         Buy,
         Sell,
         HoldPriceCouldGoUp,
-        SellPriceCouldGoDown,
+        HoldPriceCouldGoDown,
         StrongBuy,
-        StrongSell
+        BuyTheDip,
+        RSIToBuy,
+        RSIToSell,
+        RSIToWait,
+        OSCToBuy,
+        OSCToSell
     };
     public enum BellShapeValue
     {
