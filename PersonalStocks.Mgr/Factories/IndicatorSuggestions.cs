@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Trady.Analysis.Indicator;
 
 namespace HP.PersonalStocks.Mgr.Factories
 {
@@ -23,12 +24,12 @@ namespace HP.PersonalStocks.Mgr.Factories
             return $"{(isPossitive ? "Positive" : "Negative")} ({instruction})";
         }
 
-        public string GetRSIIndicator(List<RsiResult> rsi)
+        public string GetRSIIndicator(List<StochResult> rsi)
         {
             if (rsi == null || rsi.Count == 0)
                 return "";
             var instruction = "Buy When RSI < 30. Sell When RSI > 70.";
-            var rsiCurrentValue = Math.Round(rsi.LastOrDefault().Rsi.Value, 2);
+            var rsiCurrentValue = Math.Round(rsi.LastOrDefault().Signal.Value, 2);
             var rsiValue = rsiCurrentValue.ToString();
             RSIToBuy = rsiCurrentValue <= 30;
             RSIToSell = rsiCurrentValue >= 70;

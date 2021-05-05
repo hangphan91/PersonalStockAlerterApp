@@ -21,7 +21,7 @@ namespace HP.PersonalStocks.Mgr
         public decimal ExceptedLowPercentage { get; set; }
         public decimal ExceptedHighPercentage { get; set; }
         public Quote CurrentQuote { get; set; }
-        public List<RsiResult> RsiResults { get; set; }
+        public List<StochResult> RsiResults { get; set; }
         public List<ChaikinOscResult> ChaikinOscResults { get; set; }
         public SuggestedAction FinalSuggestion { get; set; }
         public AlertMgr(string currentSticker)
@@ -30,7 +30,7 @@ namespace HP.PersonalStocks.Mgr
             GetQuoteAndStdIndicator();
             Factory = new AlertFactory(StdDevResults, HistoricalQuotes);
             CurrentQuote = HistoricalQuotes.OrderByDescending(q => q.Date).FirstOrDefault();
-            RsiResults = new List<RsiResult>();
+            RsiResults = new List<StochResult>();
             ChaikinOscResults = new List<ChaikinOscResult>();
         }
         public AlertResult GetAlertResult()
@@ -227,7 +227,7 @@ namespace HP.PersonalStocks.Mgr
                 StdDevResults = Indicator.GetStdDev(HistoricalQuotes, 10).ToList();
                 if (HistoricalQuotes.Count > 114)
                 {
-                    RsiResults = Indicator.GetRsi(HistoricalQuotes).ToList();
+                    RsiResults = Indicator.GetStoch(HistoricalQuotes).ToList();
                     ChaikinOscResults = Indicator.GetChaikinOsc(HistoricalQuotes).ToList();
                 }
             }
